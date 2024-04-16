@@ -5,6 +5,42 @@ import hdf5storage
 import cv2
 import numpy as np
 
+def receive_array(conn):
+    header = ""
+    while True:
+        chunk = conn.recv(1).decode()
+        if chunk == '\n':  # We use newline as a delimiter for the end of the header
+            break
+        header += chunk
+    shape, dtype = header.split('-')
+    shape = tuple(map(int, shape.strip('()').split(',')))
+    dtype = np.dtype(dtype)
+
+    # Calculate the number of bytes to receive
+    data_size = np.prod(shape) * dtype.itemsize
+
+    # Receive the data
+    data = bytearray()
+    while len(data) < data_size:
+        packet = conn.recv(1024)
+        if not packet:
+            break
+        data.extend(packet)
+
+    # Convert the byte data to numpy array
+    array = np.frombuffer(data, dtype=dtype).reshape(shape)
+    return torch.from_numpy(array)
+
+
+def send_array(conn, bgr):
+    bgr_array = bgr.numpy()
+    data = bgr_array.tobytes()
+    # Send the shape and dtype first as plain text
+    shape_dtype = f"{bgr_array.shape}-{bgr_array.dtype}"
+    conn.sendall(shape_dtype.encode() + b"\n")
+    # Send the actual data
+    conn.sendall(data)
+
 def post_processing(output):
     result = output.cpu().numpy() * 1.0
     result = np.transpose(np.squeeze(result), [1, 2, 0])
@@ -93,6 +129,13 @@ def main():
             send_file(conn, filename)
         elif command == 'pre':
             print('pre')
+            model = define_model()
+            bgr = receive_array(conn)
+            output = passthrough(model, bgr)
+            result = post_processing(output)
+            save_matv73(result)
+            filename = 'image.mat'
+            send_file(conn, filename)
         elif command == 'post':
             print('post')
     

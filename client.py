@@ -7,6 +7,36 @@ import hdf5storage
 import cv2
 import numpy as np
 
+def receive_array(sock):
+    # First receive the shape and dtype
+    shape_dtype = sock.recv(1024).decode().split("-")
+    shape = tuple(map(int, shape_dtype[0].strip("()").split(",")))
+    dtype = np.dtype(shape_dtype[1])
+    # Calculate the number of bytes to receive
+    data_size = np.prod(shape) * dtype.itemsize
+    # Receive the data
+    data = bytearray()
+    while len(data) < data_size:
+        packet = sock.recv(1024)
+        if not packet:
+            break
+        data.extend(packet)
+    # Convert the byte data to numpy array
+    array = np.frombuffer(data, dtype=dtype).reshape(shape)
+    return torch.from_numpy(array)
+
+
+def send_array(sock, bgr):
+    bgr_array = bgr.numpy()
+    data = bgr_array.tobytes()
+    # Send the shape and dtype first as plain text, followed by a special separator
+    shape_dtype = f"{bgr_array.shape}-{bgr_array.dtype.name}"
+    # Calculate the length of the header and send it first
+    header = f"{shape_dtype}\n"
+    sock.sendall(header.encode())
+    # Send the actual data
+    sock.sendall(data)
+
 def post_processing(output):
     result = output.cpu().numpy() * 1.0
     result = np.transpose(np.squeeze(result), [1, 2, 0])
@@ -82,6 +112,16 @@ def main(args):
         save_matv73(result)
         print('All work carried out on client and completed')
     
+    elif command == 'pre':
+        bgr = pre_processing(filename)
+        send_array(client_socket, bgr)
+        received_filename = 'received_back_image.mat'
+        receive_file(client_socket, received_filename)
+        print('Only pre processing done on client side')
+
+    elif command == 'post':
+        print('Only post processing done on server')
+
     elif command == 'all':
         send_file(client_socket, filename)
     
