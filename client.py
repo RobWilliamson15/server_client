@@ -1,6 +1,47 @@
 import socket
 import os
 import argparse
+from mprnext import mprnext
+import torch
+import hdf5storage
+import cv2
+import numpy as np
+
+def post_processing(output):
+    result = output.cpu().numpy() * 1.0
+    result = np.transpose(np.squeeze(result), [1, 2, 0])
+    result = np.minimum(result, 1.0)
+    result = np.maximum(result, 0)
+    return result
+
+def passthrough(model, image):
+    model.eval()
+    with torch.no_grad():
+        output = model(image)
+        # Remove the batch dimension
+        output = output.squeeze(0)
+    return output
+
+def pre_processing(file_path):
+    bgr = cv2.imread(file_path)
+    bgr = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    bgr = np.float32(bgr)
+    bgr = (bgr - bgr.min())/(bgr.max()-bgr.min())
+    bgr = np.transpose(bgr, [2, 0, 1])
+    bgr = torch.from_numpy(bgr)
+    bgr = bgr.unsqueeze(0)
+
+    return bgr
+
+def save_matv73(var):
+    hdf5storage.savemat('image.mat', {'cube': var}, format='7.3', store_python_metadata=True)
+
+def define_model():
+    if torch.cuda.is_available():
+        model = mprnext(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4).cuda()
+    else:
+        model = mprnext(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4)
+    return model
 
 def send_file(sock, filename):
     # First send the size of the file
@@ -32,14 +73,24 @@ def main(args):
     ack = client_socket.recv(1024) # Wait for ack
 
     filename = 'your_img.jpg'  # This should be the path to your image
-    send_file(client_socket, filename)
-    
-    received_filename = 'received_back_image.mat'
-    receive_file(client_socket, received_filename)
-    print("Received image back from server.")
 
-    client_socket.close()
-    print("Connection closed.")
+    if command == 'none':
+        model = define_model()
+        bgr = pre_processing(filename)
+        output = passthrough(model, bgr)
+        result = post_processing(output)
+        save_matv73(result)
+        print('All work carried out on client and completed')
+    
+    elif command == 'all':
+        send_file(client_socket, filename)
+    
+        received_filename = 'received_back_image.mat'
+        receive_file(client_socket, received_filename)
+        print("Received image back from server.")
+
+        client_socket.close()
+        print("Connection closed.")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description= 'Flag for the experiment to run.')

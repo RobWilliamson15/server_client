@@ -82,20 +82,19 @@ def main():
             print('none')
         elif command == 'all':
             print('all')
+            filename = 'server_image.png'
+            receive_file(conn, filename)
+            model = define_model()
+            bgr = pre_processing(filename)
+            output = passthrough(model, bgr)
+            result = post_processing(output)
+            save_matv73(result)
+            filename = 'image.mat'
+            send_file(conn, filename)
         elif command == 'pre':
             print('pre')
         elif command == 'post':
             print('post')
-
-        filename = 'server_image.png'
-        receive_file(conn, filename)
-        model = define_model()
-        bgr = pre_processing(filename)
-        output = passthrough(model, bgr)
-        result = post_processing(output)
-        save_matv73(result)
-        filename = 'image.mat'
-        send_file(conn, filename)
     
         conn.close()
         #server_socket.close()
