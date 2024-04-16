@@ -28,7 +28,7 @@ def main():
     filename = 'your_img.jpg'  # This should be the path to your image
     send_file(client_socket, filename)
     
-    received_filename = 'received_back_image.png'
+    received_filename = 'received_back_image.mat'
     receive_file(client_socket, received_filename)
     print("Received image back from server.")
 
