@@ -69,22 +69,36 @@ def main():
     server_socket.bind((host, port))
     server_socket.listen(1)
     print("Server listening on port", port)
+    
+    while True:
+        conn, addr = server_socket.accept()
+        print('Connected by', addr)
+    
+        # Recieve the command from the client
+        command = conn.recv(1024).decode()
+        conn.sendall(b'ACK')
 
-    conn, addr = server_socket.accept()
-    print('Connected by', addr)
+        if command == 'none':
+            print('none')
+        elif command == 'all':
+            print('all')
+        elif command == 'pre':
+            print('pre')
+        elif command == 'post':
+            print('post')
+
+        filename = 'server_image.png'
+        receive_file(conn, filename)
+        model = define_model()
+        bgr = pre_processing(filename)
+        output = passthrough(model, bgr)
+        result = post_processing(output)
+        save_matv73(result)
+        filename = 'image.mat'
+        send_file(conn, filename)
     
-    filename = 'server_image.png'
-    receive_file(conn, filename)
-    model = define_model()
-    bgr = pre_processing(filename)
-    output = passthrough(model, bgr)
-    result = post_processing(output)
-    save_matv73(result)
-    filename = 'image.mat'
-    send_file(conn, filename)
-    
-    conn.close()
-    server_socket.close()
+        conn.close()
+        #server_socket.close()
 
 if __name__ == '__main__':
     main()

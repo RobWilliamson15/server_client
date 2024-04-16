@@ -1,5 +1,6 @@
 import socket
 import os
+import argparse
 
 def send_file(sock, filename):
     # First send the size of the file
@@ -18,13 +19,18 @@ def receive_file(sock, filename):
             file.write(data)
             data = sock.recv(1024)
 
-def main():
+def main(args):
     host = 'localhost'
     port = 12345
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
     
+    # Sending the command to the server
+    command = args.exp
+    client_socket.sendall(command.encode())
+    ack = client_socket.recv(1024) # Wait for ack
+
     filename = 'your_img.jpg'  # This should be the path to your image
     send_file(client_socket, filename)
     
@@ -36,5 +42,8 @@ def main():
     print("Connection closed.")
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description= 'Flag for the experiment to run.')
+    parser.add_argument('exp', type=str, choices=['none', 'pre', 'post', 'all', 's1', 's2', 'u1', 'u2'], help='Specify the amount of work done on client side and server side')
+    args = parser.parse_args()
+    main(args)
 
