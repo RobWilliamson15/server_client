@@ -94,9 +94,12 @@ def receive_file(conn, filename):
             bytes_received += len(data)
 
 def send_file(conn, filename):
-    with open(filename, 'rb') as file:
-        data = file.read()
-        conn.sendall(data)  # Send the file data back
+    try:
+        with open(filename, 'rb') as file:
+            data = file.read()
+            conn.sendall(data)  # Send the file data back
+    except BrokenPipeError as e:
+        print(f"Error sending data: {e}")
 
 def main():
     host = 'localhost'
@@ -138,7 +141,12 @@ def main():
             send_file(conn, filename)
         elif command == 'post':
             print('post')
-    
+            output = receive_array(conn)
+            result = post_processing(output)
+            save_matv73(result)
+            filename = 'image.mat'
+            send_file(conn, filename)
+
         conn.close()
         #server_socket.close()
 

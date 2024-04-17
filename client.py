@@ -120,6 +120,10 @@ def main(args):
         print('Only pre processing done on client side')
 
     elif command == 'post':
+        model = define_model()
+        bgr = pre_processing(filename)
+        output = passthrough(model, bgr)
+        send_array(client_socket, output)
         print('Only post processing done on server')
 
     elif command == 'all':
