@@ -6,7 +6,9 @@ import torch
 import hdf5storage
 import cv2
 import numpy as np
+from memory_profiler import profile
 
+@profile
 def receive_array(sock):
     # First receive the shape and dtype
     shape_dtype = sock.recv(1024).decode().split("-")
