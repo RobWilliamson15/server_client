@@ -1,5 +1,6 @@
 import socket
 from mprnext import mprnext
+from MPRNet import MPRNet
 import torch
 import hdf5storage
 import cv2
@@ -74,9 +75,11 @@ def save_matv73(var):
 
 def define_model():
     if torch.cuda.is_available():
-        model = mprnext(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4).cuda()
+        model = MPRNet(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4).cuda()
+        #model = mprnext(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4).cuda()
     else:
-        model = mprnext(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4)
+        model = MPRNet(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4).cuda()
+        #model = mprnext(in_c=121, out_c=121, n_feat=121, scale_unetfeats=121, scale_orsnetfeats=121, num_cab=4)
     
     return model
 
